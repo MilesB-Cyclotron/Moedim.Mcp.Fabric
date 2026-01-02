@@ -1,16 +1,18 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Server;
-using Moedim.Mcp.Fabric.Tools;
+using Moedim.Mcp.Fabric.Extensions;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Route logs to stderr; stdout is reserved for MCP protocol messages.
+// Route logs to stderr for better visibility
 builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Information);
 
-builder.Services
-    .AddMcpServer()
-    .WithStdioServerTransport()
-    .WithTools<TemplateTools>();
+// Add Fabric services
+builder.Services.AddFabricSemanticModel(builder.Configuration);
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+Console.WriteLine("Fabric Semantic Model MCP Server initialized");
+Console.WriteLine("Available services: QuerySemanticModel, ListSemanticModels, GetSemanticModelMetadata, AggregateData, GetDistinctValues");
+
+await host.RunAsync();
