@@ -5,6 +5,7 @@ This folder contains HTTP request files for testing the Moedim.Mcp.Fabric MCP se
 ## Prerequisites
 
 1. **Start the MCP server in HTTP mode:**
+
    ```bash
    dotnet run --project src/Moedim.Mcp.Fabric/Moedim.Mcp.Fabric.csproj --http
    ```
@@ -15,6 +16,7 @@ This folder contains HTTP request files for testing the Moedim.Mcp.Fabric MCP se
    - `Fabric:DefaultDatasetId` (optional)
 
 3. **Authenticate with Azure:**
+
    ```bash
    az login
    ```
@@ -24,6 +26,7 @@ This folder contains HTTP request files for testing the Moedim.Mcp.Fabric MCP se
 The MCP HTTP transport uses **JSON-RPC 2.0** format with Server-Sent Events (SSE).
 
 **Important**: HTTP requests must accept **both** content types:
+
 - `Accept: application/json, text/event-stream`
 
 All requests use JSON-RPC 2.0 format (POST or GET):
@@ -33,6 +36,7 @@ All requests use JSON-RPC 2.0 format (POST or GET):
   "method": "method_name",
   "params": { }
 }
+
 ```
 
 ## Using HTTP Files
@@ -101,10 +105,12 @@ curl -X POST http://localhost:5000/mcp \
 ## Available MCP Methods
 
 ### Protocol Methods
+
 - `initialize` - Initialize MCP session (required first)
 - `tools/list` - List all available tools
 
 ### Tool Invocation
+
 - `tools/call` - Execute a specific tool with parameters
 
 ## Available Tools
@@ -135,6 +141,7 @@ Update the `@host` variable in `mcp-server.http` or use the custom port section 
 ## Troubleshooting
 
 **Connection Refused:**
+
 - Ensure the server is running in HTTP mode
 - Check that the port matches (default: 5000)
 
@@ -145,14 +152,17 @@ Update the `@host` variable in `mcp-server.http` or use the custom port section 
 - Try the diagnostic endpoints: `GET /` and `GET /mcp` with Accept: text/event-stream
 
 **Authentication Errors:**
+
 - Run `az login` and verify your Azure credentials
 - Ensure your account has access to the Fabric workspace
 
 **Configuration Errors:**
+
 - Verify `Fabric:WorkspaceId` is set in `appsettings.json` or environment variables
 - Check server startup logs for configuration validation errors
 
 **Tool Invocation Errors:**
+
 - Ensure `datasetId` is either set in configuration as `Fabric:DefaultDatasetId` or provided in the request
 - Verify the workspace and dataset IDs are correct
 - Check that table/column names exist in your semantic model

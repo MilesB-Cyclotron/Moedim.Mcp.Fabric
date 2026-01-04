@@ -129,3 +129,10 @@ Debugging in VS Code: use the `.NET: Debug MCP Server` launch profile.
 ## License
 
 MIT License. See LICENSE.
+
+## References
+
+- [text](https://github.com/modelcontextprotocol/csharp-sdk)
+- [Model Context Protocol .NET Samples](https://github.com/microsoft/mcp-dotnet-samples)
+- [Create a minimal MCP server using C# and publish to NuGet](https://learn.microsoft.com/en-us/dotnet/ai/quickstarts/build-mcp-server)
+- [modelcontextprotocol/csharp-sdk](https://github.com/modelcontextprotocol/csharp-sdk)
