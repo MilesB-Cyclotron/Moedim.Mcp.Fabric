@@ -1,6 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json.Serialization;
-using Moedim.Mcp.Fabric.Models;
 using Moedim.Mcp.Fabric.Services;
 using ModelContextProtocol.Server;
 
@@ -55,6 +53,21 @@ public class FabricSemanticModelTools(IFabricSemanticModelService fabricService)
         var result = await _fabricService.GetSemanticModelMetadataAsync(datasetId, cancellationToken).ConfigureAwait(false);
         return result.Success
             ? (result.FormattedText ?? "No metadata found")
+            : $"Error: {result.Error}";
+    }
+
+    /// <summary>
+    /// Gets detailed information about a specific dataset.
+    /// </summary>
+    [McpServerTool(Name = "get_dataset_details")]
+    [Description("Retrieves detailed information about a Microsoft Fabric dataset including configuration, refresh settings, and security properties")]
+    public async Task<string> GetDatasetDetails(
+        [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _fabricService.GetDatasetDetailsAsync(datasetId, cancellationToken).ConfigureAwait(false);
+        return result.Success
+            ? (result.FormattedText ?? "No details found")
             : $"Error: {result.Error}";
     }
 

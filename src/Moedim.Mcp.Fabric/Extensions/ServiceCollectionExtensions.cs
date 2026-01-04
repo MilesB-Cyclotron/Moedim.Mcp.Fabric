@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Azure.Core;
-using Azure.Identity;
 using Moedim.Mcp.Fabric.Configuration;
 using Moedim.Mcp.Fabric.Services;
 using Microsoft.Extensions.Configuration;

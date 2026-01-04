@@ -38,6 +38,16 @@ public interface IFabricSemanticModelService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets detailed information about a specific dataset.
+    /// </summary>
+    /// <param name="datasetId">Optional dataset ID; uses default if not provided</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Detailed dataset information</returns>
+    Task<FabricResponse<DatasetInfo>> GetDatasetDetailsAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Performs an aggregation operation on a column.
     /// </summary>
     /// <param name="tableName">Name of the table</param>

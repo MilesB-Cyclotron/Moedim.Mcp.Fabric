@@ -57,8 +57,18 @@ public class FabricSemanticModelService : IFabricSemanticModelService
                     Error = "Dataset ID not provided and no default dataset configured"
                 };
 
-            var query = new { query = daxQuery };
-            var jsonContent = JsonSerializer.Serialize(query);
+            var requestBody = new
+            {
+                queries = new[]
+                {
+                    new { query = daxQuery }
+                },
+                serializerSettings = new
+                {
+                    includeNulls = false
+                }
+            };
+            var jsonContent = JsonSerializer.Serialize(requestBody);
             var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
 
             var url = $"{_apiBaseUrl}/groups/{_workspaceId}/datasets/{id}/executeQueries";
@@ -120,7 +130,7 @@ public class FabricSemanticModelService : IFabricSemanticModelService
                 return new FabricResponse<List<TableMetadata>>
                 {
                     Success = false,
-                    Error = $"Failed to get metadata: {response.StatusCode} - {error}"
+                    Error = $"Failed to get metadata: {response.StatusCode} - {error}\nURL: {url}\nDataset ID: {id}"
                 };
             }
 
@@ -186,6 +196,56 @@ public class FabricSemanticModelService : IFabricSemanticModelService
     }
 
     /// <summary>
+    /// Gets detailed information about a specific dataset.
+    /// </summary>
+    public async Task<FabricResponse<DatasetInfo>> GetDatasetDetailsAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var id = datasetId ?? _defaultDatasetId;
+            if (string.IsNullOrEmpty(id))
+                return new FabricResponse<DatasetInfo>
+                {
+                    Success = false,
+                    Error = "Dataset ID not provided and no default dataset configured"
+                };
+
+            var url = $"{_apiBaseUrl}/groups/{_workspaceId}/datasets/{id}";
+            var response = await GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                return new FabricResponse<DatasetInfo>
+                {
+                    Success = false,
+                    Error = $"Failed to get dataset details: {response.StatusCode} - {error}"
+                };
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            var dataset = ParseDatasetDetails(responseBody);
+
+            return new FabricResponse<DatasetInfo>
+            {
+                Success = true,
+                Data = dataset,
+                FormattedText = FormatDatasetDetails(dataset)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new FabricResponse<DatasetInfo>
+            {
+                Success = false,
+                Error = $"Exception getting dataset details: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
     /// Performs an aggregation on a column.
     /// </summary>
     public async Task<FabricResponse<AggregationResult>> AggregateDataAsync(
@@ -198,7 +258,15 @@ public class FabricSemanticModelService : IFabricSemanticModelService
         try
         {
             var aggregationFunc = aggregationFunction.ToUpper();
-            var daxQuery = $"EVALUATE SUMMARIZE({tableName}, \"{columnName}\", \"{aggregationFunc}\", {aggregationFunc}({tableName}[{columnName}]))";
+            var daxQuery = aggregationFunc switch
+            {
+                "SUM" => $"EVALUATE ROW(\"Total\", SUM('{tableName}'[{columnName}]))",
+                "COUNT" => $"EVALUATE ROW(\"Count\", COUNT('{tableName}'[{columnName}]))",
+                "AVERAGE" or "AVG" => $"EVALUATE ROW(\"Average\", AVERAGE('{tableName}'[{columnName}]))",
+                "MIN" => $"EVALUATE ROW(\"Min\", MIN('{tableName}'[{columnName}]))",
+                "MAX" => $"EVALUATE ROW(\"Max\", MAX('{tableName}'[{columnName}]))",
+                _ => throw new ArgumentException($"Unsupported aggregation function: {aggregationFunction}")
+            };
 
             var queryResponse = await ExecuteDAXQueryAsync(daxQuery, datasetId, cancellationToken);
 
@@ -211,6 +279,7 @@ public class FabricSemanticModelService : IFabricSemanticModelService
                 };
             }
 
+            // Get the first value from the first row (aggregation returns single value)
             var resultValue = queryResponse.Data?.Rows[0].Values.FirstOrDefault();
 
             return new FabricResponse<AggregationResult>
@@ -248,7 +317,7 @@ public class FabricSemanticModelService : IFabricSemanticModelService
     {
         try
         {
-            var daxQuery = $"EVALUATE VALUES({tableName}[{columnName}])";
+            var daxQuery = $"EVALUATE DISTINCT('{tableName}'[{columnName}])";
             var queryResponse = await ExecuteDAXQueryAsync(daxQuery, datasetId, cancellationToken);
 
             if (!queryResponse.Success || queryResponse.Data == null)
@@ -260,6 +329,7 @@ public class FabricSemanticModelService : IFabricSemanticModelService
                 };
             }
 
+            // Extract all values from the row dictionaries
             var values = queryResponse.Data.Rows
                 .SelectMany(row => row.Values)
                 .ToList();
@@ -351,28 +421,20 @@ public class FabricSemanticModelService : IFabricSemanticModelService
                                 {
                                     foreach (var row in rows.EnumerateArray())
                                     {
-                                        if (row.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                        var rowDict = new Dictionary<string, object?>();
+                                        foreach (var prop in row.EnumerateObject())
                                         {
-                                            var rowDict = new Dictionary<string, object?>();
-                                            var index = 0;
-                                            foreach (var cell in row.EnumerateArray())
+                                            rowDict[prop.Name] = prop.Value.ValueKind switch
                                             {
-                                                if (index < result.Columns.Count)
-                                                {
-                                                    rowDict[result.Columns[index]] = cell.ValueKind switch
-                                                    {
-                                                        System.Text.Json.JsonValueKind.Number => cell.GetDecimal(),
-                                                        System.Text.Json.JsonValueKind.String => cell.GetString(),
-                                                        System.Text.Json.JsonValueKind.True => true,
-                                                        System.Text.Json.JsonValueKind.False => false,
-                                                        System.Text.Json.JsonValueKind.Null => null,
-                                                        _ => cell.GetRawText()
-                                                    };
-                                                }
-                                                index++;
-                                            }
-                                            result.Rows.Add(rowDict);
+                                                System.Text.Json.JsonValueKind.Number => prop.Value.TryGetInt64(out var longVal) ? longVal : prop.Value.GetDecimal(),
+                                                System.Text.Json.JsonValueKind.String => prop.Value.GetString(),
+                                                System.Text.Json.JsonValueKind.True => true,
+                                                System.Text.Json.JsonValueKind.False => false,
+                                                System.Text.Json.JsonValueKind.Null => null,
+                                                _ => prop.Value.GetRawText()
+                                            };
                                         }
+                                        result.Rows.Add(rowDict);
                                     }
                                 }
                             }
@@ -495,6 +557,95 @@ public class FabricSemanticModelService : IFabricSemanticModelService
     private string FormatDatasets(List<DatasetInfo> datasets)
     {
         return string.Join("\n", datasets.Select(ds => $"• {ds.Name} (ID: {ds.Id})"));
+    }
+
+    private DatasetInfo ParseDatasetDetails(string json)
+    {
+        var dataset = new DatasetInfo();
+        try
+        {
+            using (JsonDocument doc = JsonDocument.Parse(json))
+            {
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("id", out var id))
+                    dataset.Id = id.GetString();
+                if (root.TryGetProperty("name", out var name))
+                    dataset.Name = name.GetString();
+                if (root.TryGetProperty("webUrl", out var webUrl))
+                    dataset.WebUrl = webUrl.GetString();
+                if (root.TryGetProperty("addRowsAPIEnabled", out var addRowsAPIEnabled))
+                    dataset.AddRowsAPIEnabled = addRowsAPIEnabled.GetBoolean();
+                if (root.TryGetProperty("configuredBy", out var configuredBy))
+                    dataset.ConfiguredBy = configuredBy.GetString();
+                if (root.TryGetProperty("isRefreshable", out var isRefreshable))
+                    dataset.IsRefreshable = isRefreshable.GetBoolean();
+                if (root.TryGetProperty("isEffectiveIdentityRequired", out var isEffectiveIdentityRequired))
+                    dataset.IsEffectiveIdentityRequired = isEffectiveIdentityRequired.GetBoolean();
+                if (root.TryGetProperty("isEffectiveIdentityRolesRequired", out var isEffectiveIdentityRolesRequired))
+                    dataset.IsEffectiveIdentityRolesRequired = isEffectiveIdentityRolesRequired.GetBoolean();
+                if (root.TryGetProperty("isOnPremGatewayRequired", out var isOnPremGatewayRequired))
+                    dataset.IsOnPremGatewayRequired = isOnPremGatewayRequired.GetBoolean();
+                if (root.TryGetProperty("targetStorageMode", out var targetStorageMode))
+                    dataset.TargetStorageMode = targetStorageMode.GetString();
+                if (root.TryGetProperty("createdDate", out var createdDate))
+                    dataset.CreatedDate = createdDate.GetDateTime();
+                if (root.TryGetProperty("createReportEmbedURL", out var createReportEmbedURL))
+                    dataset.CreateReportEmbedURL = createReportEmbedURL.GetString();
+                if (root.TryGetProperty("qnaEmbedURL", out var qnaEmbedURL))
+                    dataset.QnaEmbedURL = qnaEmbedURL.GetString();
+
+                if (root.TryGetProperty("queryScaleOutSettings", out var qsoSettings) && qsoSettings.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    dataset.QueryScaleOutSettings = new QueryScaleOutSettings();
+                    if (qsoSettings.TryGetProperty("autoSyncReadOnlyReplicas", out var autoSync))
+                        dataset.QueryScaleOutSettings.AutoSyncReadOnlyReplicas = autoSync.GetBoolean();
+                    if (qsoSettings.TryGetProperty("maxReadOnlyReplicas", out var maxReplicas))
+                        dataset.QueryScaleOutSettings.MaxReadOnlyReplicas = maxReplicas.GetInt32();
+                }
+            }
+        }
+        catch
+        {
+            // Parse error
+        }
+        return dataset;
+    }
+
+    private string FormatDatasetDetails(DatasetInfo dataset)
+    {
+        var lines = new List<string>
+        {
+            $"Dataset: {dataset.Name}",
+            $"ID: {dataset.Id}",
+            $"Web URL: {dataset.WebUrl}"
+        };
+
+        if (dataset.ConfiguredBy != null)
+            lines.Add($"Configured By: {dataset.ConfiguredBy}");
+        if (dataset.CreatedDate.HasValue)
+            lines.Add($"Created Date: {dataset.CreatedDate.Value:yyyy-MM-dd HH:mm:ss}");
+        if (dataset.TargetStorageMode != null)
+            lines.Add($"Storage Mode: {dataset.TargetStorageMode}");
+        if (dataset.IsRefreshable.HasValue)
+            lines.Add($"Is Refreshable: {dataset.IsRefreshable.Value}");
+        if (dataset.AddRowsAPIEnabled.HasValue)
+            lines.Add($"Push API Enabled: {dataset.AddRowsAPIEnabled.Value}");
+        if (dataset.IsEffectiveIdentityRequired.HasValue)
+            lines.Add($"Effective Identity Required: {dataset.IsEffectiveIdentityRequired.Value}");
+        if (dataset.IsEffectiveIdentityRolesRequired.HasValue)
+            lines.Add($"Effective Identity Roles Required: {dataset.IsEffectiveIdentityRolesRequired.Value}");
+        if (dataset.IsOnPremGatewayRequired.HasValue)
+            lines.Add($"On-Prem Gateway Required: {dataset.IsOnPremGatewayRequired.Value}");
+
+        if (dataset.QueryScaleOutSettings != null)
+        {
+            lines.Add($"Query Scale-Out Settings:");
+            lines.Add($"  Auto Sync Read-Only Replicas: {dataset.QueryScaleOutSettings.AutoSyncReadOnlyReplicas}");
+            lines.Add($"  Max Read-Only Replicas: {dataset.QueryScaleOutSettings.MaxReadOnlyReplicas}");
+        }
+
+        return string.Join("\n", lines);
     }
 
     private string FormatDistinctValues(string tableName, string columnName, List<object?> values)

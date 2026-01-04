@@ -5,16 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C#: Example Debug",
-            "type": "dotnet",
-            "request": "launch",
-            "projectPath": "${workspaceFolder}/samples/Moedim.Mcp.Fabric.Sample/Moedim.Mcp.Fabric.Sample.csproj"
-        },
-        {
             "name": ".NET: Debug MCP Server",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "dotnet: build",
             "program": "${workspaceFolder}/src/Moedim.Mcp.Fabric/bin/Debug/net10.0/Moedim.Mcp.Fabric.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/Moedim.Mcp.Fabric",
@@ -22,7 +16,8 @@
             "console": "internalConsole",
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development"
-            }
+            },
+            "envFile": "${workspaceFolder}/src/Moedim.Mcp.Fabric/.env"
         }
     ]
 }

@@ -1,11 +1,14 @@
+using DotNetEnv.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Server;
 using Moedim.Mcp.Fabric.Extensions;
 using Moedim.Mcp.Fabric.Tools;
 
 var builder = Host.CreateApplicationBuilder(args);
+
+// Load environment variables from .env file
+builder.Configuration.AddDotNetEnv();
 
 // Configure logging to route to stderr for MCP protocol compliance
 builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Information);
