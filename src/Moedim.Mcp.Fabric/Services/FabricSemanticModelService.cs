@@ -246,6 +246,212 @@ public class FabricSemanticModelService : IFabricSemanticModelService
     }
 
     /// <summary>
+    /// Gets datasources configured for a dataset.
+    /// </summary>
+    public async Task<FabricResponse<List<DataSourceInfo>>> GetDatasourcesAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var id = datasetId ?? _defaultDatasetId;
+            if (string.IsNullOrEmpty(id))
+                return new FabricResponse<List<DataSourceInfo>>
+                {
+                    Success = false,
+                    Error = "Dataset ID not provided and no default dataset configured"
+                };
+
+            var url = $"{_apiBaseUrl}/groups/{_workspaceId}/datasets/{id}/datasources";
+            var response = await GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                return new FabricResponse<List<DataSourceInfo>>
+                {
+                    Success = false,
+                    Error = $"Failed to get datasources: {response.StatusCode} - {error}"
+                };
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            var datasources = ParseDatasources(responseBody);
+
+            return new FabricResponse<List<DataSourceInfo>>
+            {
+                Success = true,
+                Data = datasources,
+                FormattedText = FormatDatasources(datasources)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new FabricResponse<List<DataSourceInfo>>
+            {
+                Success = false,
+                Error = $"Exception getting datasources: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets parameters defined for a dataset.
+    /// </summary>
+    public async Task<FabricResponse<List<DatasetParameter>>> GetDatasetParametersAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var id = datasetId ?? _defaultDatasetId;
+            if (string.IsNullOrEmpty(id))
+                return new FabricResponse<List<DatasetParameter>>
+                {
+                    Success = false,
+                    Error = "Dataset ID not provided and no default dataset configured"
+                };
+
+            var url = $"{_apiBaseUrl}/groups/{_workspaceId}/datasets/{id}/parameters";
+            var response = await GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                return new FabricResponse<List<DatasetParameter>>
+                {
+                    Success = false,
+                    Error = $"Failed to get parameters: {response.StatusCode} - {error}"
+                };
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            var parameters = ParseDatasetParameters(responseBody);
+
+            return new FabricResponse<List<DatasetParameter>>
+            {
+                Success = true,
+                Data = parameters,
+                FormattedText = FormatDatasetParameters(parameters)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new FabricResponse<List<DatasetParameter>>
+            {
+                Success = false,
+                Error = $"Exception getting parameters: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets refresh history entries for a dataset.
+    /// </summary>
+    public async Task<FabricResponse<List<DatasetRefresh>>> GetRefreshHistoryAsync(
+        string? datasetId = null,
+        int? top = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var id = datasetId ?? _defaultDatasetId;
+            if (string.IsNullOrEmpty(id))
+                return new FabricResponse<List<DatasetRefresh>>
+                {
+                    Success = false,
+                    Error = "Dataset ID not provided and no default dataset configured"
+                };
+
+            var url = $"{_apiBaseUrl}/groups/{_workspaceId}/datasets/{id}/refreshes";
+            if (top.HasValue)
+            {
+                url += $"?$top={top.Value}";
+            }
+
+            var response = await GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                return new FabricResponse<List<DatasetRefresh>>
+                {
+                    Success = false,
+                    Error = $"Failed to get refresh history: {response.StatusCode} - {error}"
+                };
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            var refreshes = ParseRefreshHistory(responseBody);
+
+            return new FabricResponse<List<DatasetRefresh>>
+            {
+                Success = true,
+                Data = refreshes,
+                FormattedText = FormatRefreshHistory(refreshes)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new FabricResponse<List<DatasetRefresh>>
+            {
+                Success = false,
+                Error = $"Exception getting refresh history: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// Gets users and principals who have access to a dataset.
+    /// </summary>
+    public async Task<FabricResponse<List<DatasetUserAccess>>> GetDatasetUsersAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var id = datasetId ?? _defaultDatasetId;
+            if (string.IsNullOrEmpty(id))
+                return new FabricResponse<List<DatasetUserAccess>>
+                {
+                    Success = false,
+                    Error = "Dataset ID not provided and no default dataset configured"
+                };
+
+            var url = $"{_apiBaseUrl}/groups/{_workspaceId}/datasets/{id}/users";
+            var response = await GetAsync(url, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(cancellationToken);
+                return new FabricResponse<List<DatasetUserAccess>>
+                {
+                    Success = false,
+                    Error = $"Failed to get dataset users: {response.StatusCode} - {error}"
+                };
+            }
+
+            var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            var users = ParseDatasetUsers(responseBody);
+
+            return new FabricResponse<List<DatasetUserAccess>>
+            {
+                Success = true,
+                Data = users,
+                FormattedText = FormatDatasetUsers(users)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new FabricResponse<List<DatasetUserAccess>>
+            {
+                Success = false,
+                Error = $"Exception getting dataset users: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
     /// Performs an aggregation on a column.
     /// </summary>
     public async Task<FabricResponse<AggregationResult>> AggregateDataAsync(
@@ -652,5 +858,234 @@ public class FabricSemanticModelService : IFabricSemanticModelService
     {
         var valueStrings = values.Select(v => v?.ToString() ?? "NULL");
         return $"{tableName}.{columnName}: {string.Join(", ", valueStrings)}";
+    }
+
+    private List<DataSourceInfo> ParseDatasources(string json)
+    {
+        var datasources = new List<DataSourceInfo>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var dsItem in value.EnumerateArray())
+                {
+                    var datasource = new DataSourceInfo();
+                    if (dsItem.TryGetProperty("datasourceType", out var type))
+                        datasource.DatasourceType = type.GetString();
+                    if (dsItem.TryGetProperty("datasourceId", out var dsId))
+                        datasource.DatasourceId = dsId.GetString();
+                    if (dsItem.TryGetProperty("gatewayId", out var gatewayId))
+                        datasource.GatewayId = gatewayId.GetString();
+                    if (dsItem.TryGetProperty("connectionString", out var connectionString))
+                        datasource.ConnectionString = connectionString.GetString();
+                    if (dsItem.TryGetProperty("name", out var name))
+                        datasource.Name = name.GetString();
+
+                    if (dsItem.TryGetProperty("connectionDetails", out var details) && details.ValueKind == JsonValueKind.Object)
+                    {
+                        foreach (var property in details.EnumerateObject())
+                        {
+                            datasource.ConnectionDetails[property.Name] = property.Value.ValueKind switch
+                            {
+                                JsonValueKind.String => property.Value.GetString(),
+                                JsonValueKind.Number => property.Value.ToString(),
+                                JsonValueKind.True => "true",
+                                JsonValueKind.False => "false",
+                                _ => property.Value.GetRawText()
+                            };
+                        }
+                    }
+
+                    datasources.Add(datasource);
+                }
+            }
+        }
+        catch
+        {
+            // Parse error
+        }
+
+        return datasources;
+    }
+
+    private List<DatasetParameter> ParseDatasetParameters(string json)
+    {
+        var parameters = new List<DatasetParameter>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var parameterItem in value.EnumerateArray())
+                {
+                    var parameter = new DatasetParameter();
+                    if (parameterItem.TryGetProperty("name", out var name))
+                        parameter.Name = name.GetString();
+                    if (parameterItem.TryGetProperty("type", out var type))
+                        parameter.Type = type.GetString();
+                    if (parameterItem.TryGetProperty("isRequired", out var isRequired))
+                        parameter.IsRequired = isRequired.GetBoolean();
+                    if (parameterItem.TryGetProperty("currentValue", out var currentValue))
+                        parameter.CurrentValue = currentValue.GetString();
+                    if (parameterItem.TryGetProperty("suggestedValues", out var suggestedValues) && suggestedValues.ValueKind == JsonValueKind.Array)
+                    {
+                        parameter.SuggestedValues.AddRange(suggestedValues.EnumerateArray().Select(v => v.GetString() ?? string.Empty));
+                    }
+
+                    parameters.Add(parameter);
+                }
+            }
+        }
+        catch
+        {
+            // Parse error
+        }
+
+        return parameters;
+    }
+
+    private List<DatasetRefresh> ParseRefreshHistory(string json)
+    {
+        var refreshes = new List<DatasetRefresh>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var refreshItem in value.EnumerateArray())
+                {
+                    var refresh = new DatasetRefresh();
+                    if (refreshItem.TryGetProperty("refreshType", out var refreshType))
+                        refresh.RefreshType = refreshType.GetString();
+                    if (refreshItem.TryGetProperty("startTime", out var startTime) && startTime.ValueKind == JsonValueKind.String && DateTime.TryParse(startTime.GetString(), out var start))
+                        refresh.StartTime = start;
+                    if (refreshItem.TryGetProperty("endTime", out var endTime) && endTime.ValueKind == JsonValueKind.String && DateTime.TryParse(endTime.GetString(), out var end))
+                        refresh.EndTime = end;
+                    if (refreshItem.TryGetProperty("status", out var status))
+                        refresh.Status = status.GetString();
+                    if (refreshItem.TryGetProperty("requestId", out var requestId))
+                        refresh.RequestId = requestId.GetString();
+                    if (refreshItem.TryGetProperty("serviceExceptionJson", out var serviceExceptionJson))
+                        refresh.ServiceExceptionJson = serviceExceptionJson.GetString();
+
+                    if (refreshItem.TryGetProperty("refreshAttempts", out var attempts) && attempts.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var attemptItem in attempts.EnumerateArray())
+                        {
+                            var attempt = new RefreshAttempt();
+                            if (attemptItem.TryGetProperty("attemptId", out var attemptId) && attemptId.ValueKind == JsonValueKind.Number)
+                                attempt.AttemptId = attemptId.GetInt32();
+                            if (attemptItem.TryGetProperty("startTime", out var attemptStart) && attemptStart.ValueKind == JsonValueKind.String && DateTime.TryParse(attemptStart.GetString(), out var attemptStartTime))
+                                attempt.StartTime = attemptStartTime;
+                            if (attemptItem.TryGetProperty("endTime", out var attemptEnd) && attemptEnd.ValueKind == JsonValueKind.String && DateTime.TryParse(attemptEnd.GetString(), out var attemptEndTime))
+                                attempt.EndTime = attemptEndTime;
+                            if (attemptItem.TryGetProperty("type", out var attemptType))
+                                attempt.Type = attemptType.GetString();
+                            if (attemptItem.TryGetProperty("serviceExceptionJson", out var attemptException))
+                                attempt.ServiceExceptionJson = attemptException.GetString();
+
+                            refresh.Attempts.Add(attempt);
+                        }
+                    }
+
+                    refreshes.Add(refresh);
+                }
+            }
+        }
+        catch
+        {
+            // Parse error
+        }
+
+        return refreshes;
+    }
+
+    private List<DatasetUserAccess> ParseDatasetUsers(string json)
+    {
+        var users = new List<DatasetUserAccess>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("value", out var value) && value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var userItem in value.EnumerateArray())
+                {
+                    var user = new DatasetUserAccess();
+                    if (userItem.TryGetProperty("identifier", out var identifier))
+                        user.Identifier = identifier.GetString();
+                    if (userItem.TryGetProperty("principalType", out var principalType))
+                        user.PrincipalType = principalType.GetString();
+                    if (userItem.TryGetProperty("datasetUserAccessRight", out var accessRight))
+                        user.AccessRight = accessRight.GetString();
+
+                    users.Add(user);
+                }
+            }
+        }
+        catch
+        {
+            // Parse error
+        }
+
+        return users;
+    }
+
+    private string FormatDatasources(List<DataSourceInfo> datasources)
+    {
+        if (datasources.Count == 0)
+            return "No datasources found";
+
+        return string.Join(
+            "\n",
+            datasources.Select(ds =>
+            {
+                var details = ds.ConnectionDetails.Count > 0
+                    ? string.Join(", ", ds.ConnectionDetails.Select(kv => $"{kv.Key}:{kv.Value}"))
+                    : "no connection details";
+                return $"{ds.DatasourceType ?? "Unknown"} (ID: {ds.DatasourceId ?? "n/a"}, Gateway: {ds.GatewayId ?? "n/a"}) | {details}";
+            }));
+    }
+
+    private string FormatDatasetParameters(List<DatasetParameter> parameters)
+    {
+        if (parameters.Count == 0)
+            return "No parameters found";
+
+        return string.Join(
+            "\n",
+            parameters.Select(p =>
+            {
+                var suggestions = p.SuggestedValues.Count > 0
+                    ? string.Join(",", p.SuggestedValues)
+                    : "none";
+                return $"{p.Name} ({p.Type}) Required: {p.IsRequired} Current: {p.CurrentValue ?? "n/a"} Suggested: {suggestions}";
+            }));
+    }
+
+    private string FormatRefreshHistory(List<DatasetRefresh> refreshes)
+    {
+        if (refreshes.Count == 0)
+            return "No refresh history found";
+
+        return string.Join(
+            "\n",
+            refreshes.Select(r =>
+            {
+                var attempts = r.Attempts.Count > 0
+                    ? string.Join("; ", r.Attempts.Select(a => $"Attempt {a.AttemptId}: {a.Type} {a.StartTime:u}->{a.EndTime:u}"))
+                    : "No attempts";
+                return $"{r.Status ?? "Unknown"} | Type: {r.RefreshType ?? "n/a"} | Start: {r.StartTime:u} | End: {r.EndTime:u} | RequestId: {r.RequestId ?? "n/a"} | Attempts: {attempts}";
+            }));
+    }
+
+    private string FormatDatasetUsers(List<DatasetUserAccess> users)
+    {
+        if (users.Count == 0)
+            return "No users found";
+
+        return string.Join(
+            "\n",
+            users.Select(u => $"{u.Identifier} | {u.PrincipalType} | {u.AccessRight}"));
     }
 }

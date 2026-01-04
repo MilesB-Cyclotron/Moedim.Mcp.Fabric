@@ -48,6 +48,48 @@ public interface IFabricSemanticModelService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Lists datasources configured for a dataset.
+    /// </summary>
+    /// <param name="datasetId">Optional dataset ID; uses default if not provided</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of datasources</returns>
+    Task<FabricResponse<List<DataSourceInfo>>> GetDatasourcesAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists parameters defined for a dataset.
+    /// </summary>
+    /// <param name="datasetId">Optional dataset ID; uses default if not provided</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of parameters</returns>
+    Task<FabricResponse<List<DatasetParameter>>> GetDatasetParametersAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists refresh history entries for a dataset.
+    /// </summary>
+    /// <param name="datasetId">Optional dataset ID; uses default if not provided</param>
+    /// <param name="top">Optional number of entries to return</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of refresh history entries</returns>
+    Task<FabricResponse<List<DatasetRefresh>>> GetRefreshHistoryAsync(
+        string? datasetId = null,
+        int? top = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists dataset user access entries.
+    /// </summary>
+    /// <param name="datasetId">Optional dataset ID; uses default if not provided</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of dataset user access entries</returns>
+    Task<FabricResponse<List<DatasetUserAccess>>> GetDatasetUsersAsync(
+        string? datasetId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Performs an aggregation operation on a column.
     /// </summary>
     /// <param name="tableName">Name of the table</param>

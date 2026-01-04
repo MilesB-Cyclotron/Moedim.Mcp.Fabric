@@ -45,7 +45,7 @@ public class FabricSemanticModelTools(IFabricSemanticModelService fabricService)
     /// Gets the metadata (tables and columns) for a semantic model.
     /// </summary>
     [McpServerTool(Name = "get_semantic_model_metadata")]
-    [Description("Retrieves the metadata (tables and columns schema) for a Microsoft Fabric semantic model")]
+    [Description("Retrieves table/column schema for a Microsoft Fabric semantic model (use when user asks for fields; requires Push API datasets)")]
     public async Task<string> GetSemanticModelMetadata(
         [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
         CancellationToken cancellationToken = default)
@@ -60,7 +60,7 @@ public class FabricSemanticModelTools(IFabricSemanticModelService fabricService)
     /// Gets detailed information about a specific dataset.
     /// </summary>
     [McpServerTool(Name = "get_dataset_details")]
-    [Description("Retrieves detailed information about a Microsoft Fabric dataset including configuration, refresh settings, and security properties")]
+    [Description("Retrieves full dataset info (name, URL, owner, created, storage, refresh, security, scale-out); use when asked for all info about a dataset")]
     public async Task<string> GetDatasetDetails(
         [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
         CancellationToken cancellationToken = default)
@@ -68,6 +68,67 @@ public class FabricSemanticModelTools(IFabricSemanticModelService fabricService)
         var result = await _fabricService.GetDatasetDetailsAsync(datasetId, cancellationToken).ConfigureAwait(false);
         return result.Success
             ? (result.FormattedText ?? "No details found")
+            : $"Error: {result.Error}";
+    }
+
+    /// <summary>
+    /// Gets datasources configured for a dataset.
+    /// </summary>
+    [McpServerTool(Name = "get_dataset_datasources")]
+    [Description("Lists all datasources configured for a Microsoft Fabric dataset")]
+    public async Task<string> GetDatasetDatasources(
+        [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _fabricService.GetDatasourcesAsync(datasetId, cancellationToken).ConfigureAwait(false);
+        return result.Success
+            ? (result.FormattedText ?? "No datasources found")
+            : $"Error: {result.Error}";
+    }
+
+    /// <summary>
+    /// Gets parameters defined for a dataset.
+    /// </summary>
+    [McpServerTool(Name = "get_dataset_parameters")]
+    [Description("Lists mashup parameters defined for a Microsoft Fabric dataset")]
+    public async Task<string> GetDatasetParameters(
+        [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _fabricService.GetDatasetParametersAsync(datasetId, cancellationToken).ConfigureAwait(false);
+        return result.Success
+            ? (result.FormattedText ?? "No parameters found")
+            : $"Error: {result.Error}";
+    }
+
+    /// <summary>
+    /// Gets refresh history entries for a dataset.
+    /// </summary>
+    [McpServerTool(Name = "get_dataset_refresh_history")]
+    [Description("Retrieves refresh history entries for a Microsoft Fabric dataset")]
+    public async Task<string> GetDatasetRefreshHistory(
+        [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
+        [Description("Optional number of entries to return (default API limit applies)")] int? top = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _fabricService.GetRefreshHistoryAsync(datasetId, top, cancellationToken).ConfigureAwait(false);
+        return result.Success
+            ? (result.FormattedText ?? "No refresh history found")
+            : $"Error: {result.Error}";
+    }
+
+    /// <summary>
+    /// Gets users and principals who have access to a dataset.
+    /// </summary>
+    [McpServerTool(Name = "get_dataset_users")]
+    [Description("Lists principals that have access to a Microsoft Fabric dataset")]
+    public async Task<string> GetDatasetUsers(
+        [Description("Optional dataset ID. If not provided, uses the default dataset")] string? datasetId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _fabricService.GetDatasetUsersAsync(datasetId, cancellationToken).ConfigureAwait(false);
+        return result.Success
+            ? (result.FormattedText ?? "No users found")
             : $"Error: {result.Error}";
     }
 
