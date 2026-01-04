@@ -604,11 +604,11 @@ public class FabricSemanticModelService : IFabricSemanticModelService
             using (JsonDocument doc = JsonDocument.Parse(json))
             {
                 var root = doc.RootElement;
-                if (root.TryGetProperty("results", out var results) && results.ValueKind == System.Text.Json.JsonValueKind.Array)
+                if (root.TryGetProperty("results", out var results) && results.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var resultItem in results.EnumerateArray())
                     {
-                        if (resultItem.TryGetProperty("tables", out var tables) && tables.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        if (resultItem.TryGetProperty("tables", out var tables) && tables.ValueKind == JsonValueKind.Array)
                         {
                             foreach (var table in tables.EnumerateArray())
                             {
@@ -618,29 +618,54 @@ public class FabricSemanticModelService : IFabricSemanticModelService
                                     {
                                         if (col.TryGetProperty("name", out var name))
                                         {
-                                            result.Columns.Add(name.GetString() ?? "");
+                                            result.Columns.Add(name.GetString() ?? string.Empty);
                                         }
                                     }
                                 }
 
-                                if (table.TryGetProperty("rows", out var rows) && rows.ValueKind == System.Text.Json.JsonValueKind.Array)
+                                if (table.TryGetProperty("rows", out var rows) && rows.ValueKind == JsonValueKind.Array)
                                 {
                                     foreach (var row in rows.EnumerateArray())
                                     {
                                         var rowDict = new Dictionary<string, object?>();
-                                        foreach (var prop in row.EnumerateObject())
+
+                                        if (row.ValueKind == JsonValueKind.Object)
                                         {
-                                            rowDict[prop.Name] = prop.Value.ValueKind switch
+                                            foreach (var prop in row.EnumerateObject())
                                             {
-                                                System.Text.Json.JsonValueKind.Number => prop.Value.TryGetInt64(out var longVal) ? longVal : prop.Value.GetDecimal(),
-                                                System.Text.Json.JsonValueKind.String => prop.Value.GetString(),
-                                                System.Text.Json.JsonValueKind.True => true,
-                                                System.Text.Json.JsonValueKind.False => false,
-                                                System.Text.Json.JsonValueKind.Null => null,
-                                                _ => prop.Value.GetRawText()
-                                            };
+                                                rowDict[prop.Name] = ConvertElement(prop.Value);
+                                            }
+
+                                            if (result.Columns.Count == 0 && rowDict.Count > 0)
+                                            {
+                                                result.Columns.AddRange(rowDict.Keys);
+                                            }
                                         }
-                                        result.Rows.Add(rowDict);
+                                        else if (row.ValueKind == JsonValueKind.Array)
+                                        {
+                                            var values = row
+                                                .EnumerateArray()
+                                                .Select(ConvertElement)
+                                                .ToList();
+
+                                            if (result.Columns.Count < values.Count)
+                                            {
+                                                for (var i = result.Columns.Count; i < values.Count; i++)
+                                                {
+                                                    result.Columns.Add($"Column{i + 1}");
+                                                }
+                                            }
+
+                                            for (var i = 0; i < values.Count; i++)
+                                            {
+                                                rowDict[result.Columns[i]] = values[i];
+                                            }
+                                        }
+
+                                        if (rowDict.Count > 0)
+                                        {
+                                            result.Rows.Add(rowDict);
+                                        }
                                     }
                                 }
                             }
@@ -654,6 +679,19 @@ public class FabricSemanticModelService : IFabricSemanticModelService
             // Parse error - return empty result
         }
         return result;
+    }
+
+    private static object? ConvertElement(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.Number => element.TryGetInt64(out var longVal) ? longVal : element.GetDecimal(),
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            _ => element.GetRawText()
+        };
     }
 
     private List<TableMetadata> ParseTableMetadata(string json)
