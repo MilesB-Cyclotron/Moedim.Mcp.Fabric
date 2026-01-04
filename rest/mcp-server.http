@@ -1,0 +1,271 @@
+### Variables
+@host = http://localhost:5000
+@endpoint = {{host}}/mcp
+
+### Health Check / Root Endpoint
+# Test if the server is responding at all
+GET {{host}}/
+Accept: application/json
+
+### MCP SSE Endpoint
+# MCP HTTP transport - SSE endpoint for receiving server messages
+# This should be the primary endpoint registered by MapMcp("/mcp")
+GET {{endpoint}}
+Accept: text/event-stream
+
+### Initialize MCP Session
+# Initialize the MCP connection via POST to the SSE endpoint
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {},
+    "clientInfo": {
+      "name": "rest-client",
+      "version": "1.0.0"
+    }
+  }
+}
+
+### List Available Tools
+# Get list of all available MCP tools
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list",
+  "params": {}
+}
+
+### Query Semantic Model
+# Execute a DAX query against a semantic model
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "query_semantic_model",
+    "arguments": {
+      "daxQuery": "EVALUATE ROW(\"Total\", 1)",
+      "datasetId": null
+    }
+  }
+}
+
+### List Semantic Models
+# List all available semantic models in the workspace
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "tools/call",
+  "params": {
+    "name": "list_semantic_models",
+    "arguments": {}
+  }
+}
+
+### Get Semantic Model Metadata
+# Retrieve table/column schema for a semantic model
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 5,
+  "method": "tools/call",
+  "params": {
+    "name": "get_semantic_model_metadata",
+    "arguments": {
+      "datasetId": null
+    }
+  }
+}
+
+### Get Dataset Details
+# Retrieve full dataset information
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "tools/call",
+  "params": {
+    "name": "get_dataset_details",
+    "arguments": {
+      "datasetId": null
+    }
+  }
+}
+
+### Get Dataset Datasources
+# List datasources configured for a dataset
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 7,
+  "method": "tools/call",
+  "params": {
+    "name": "get_dataset_datasources",
+    "arguments": {
+      "datasetId": null
+    }
+  }
+}
+
+### Get Dataset Parameters
+# List mashup parameters for a dataset
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 8,
+  "method": "tools/call",
+  "params": {
+    "name": "get_dataset_parameters",
+    "arguments": {
+      "datasetId": null
+    }
+  }
+}
+
+### Get Dataset Refresh History
+# Retrieve refresh history entries
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 9,
+  "method": "tools/call",
+  "params": {
+    "name": "get_dataset_refresh_history",
+    "arguments": {
+      "datasetId": null,
+      "top": 5
+    }
+  }
+}
+
+### Get Dataset Users
+# List users with access to a dataset
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 10,
+  "method": "tools/call",
+  "params": {
+    "name": "get_dataset_users",
+    "arguments": {
+      "datasetId": null
+    }
+  }
+}
+
+### Aggregate Data - SUM
+# Perform SUM aggregation on a column
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 11,
+  "method": "tools/call",
+  "params": {
+    "name": "aggregate_data",
+    "arguments": {
+      "tableName": "Sales",
+      "columnName": "Amount",
+      "aggregationFunction": "SUM",
+      "datasetId": null
+    }
+  }
+}
+
+### Aggregate Data - AVG
+# Perform AVG aggregation on a column
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 12,
+  "method": "tools/call",
+  "params": {
+    "name": "aggregate_data",
+    "arguments": {
+      "tableName": "Sales",
+      "columnName": "Amount",
+      "aggregationFunction": "AVG",
+      "datasetId": null
+    }
+  }
+}
+
+### Get Distinct Values
+# Retrieve distinct values from a column
+POST {{endpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 13,
+  "method": "tools/call",
+  "params": {
+    "name": "get_distinct_values",
+    "arguments": {
+      "tableName": "Sales",
+      "columnName": "Category",
+      "datasetId": null
+    }
+  }
+}
+
+### Custom Port Example (Port 8080)
+# Use this section when running on a different port
+# dotnet run --project src/Moedim.Mcp.Fabric/Moedim.Mcp.Fabric.csproj --http --port 8080
+
+@customHost = http://localhost:8080
+@customEndpoint = {{customHost}}/mcp
+
+POST {{customEndpoint}}
+Content-Type: application/json
+Accept: application/json, text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": 100,
+  "method": "tools/list",
+  "params": {}
+}

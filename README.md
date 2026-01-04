@@ -29,36 +29,80 @@ If you like or are using this project to learn or start your solution, please gi
 
 ## Quick Start
 
-1) **Install the NuGet package**
+### Installation
 
 ```bash
 dotnet add package Moedim.Mcp.Fabric
 ```
 
-1) **Configure services and MCP server**
+### Configuration
 
-```csharp
-using Moedim.Mcp.Fabric.Extensions;
-using Moedim.Mcp.Fabric.Tools;
-
-var builder = Host.CreateApplicationBuilder(args);
-
-builder.Services.AddFabricSemanticModel(builder.Configuration);
-
-builder.Services
-    .AddMcpServer()
-    .WithStdioServerTransport()
-    .WithTools<FabricSemanticModelTools>();
-
-await builder.Build().RunAsync();
-```
-
-1) **Provide configuration** (appsettings.json or environment variables)
+Provide configuration via appsettings.json or environment variables:
 
 - `Fabric:WorkspaceId` *(required)*
 - `Fabric:DefaultDatasetId` *(optional)*
 - `Fabric:ApiBaseUrl` (default: `https://api.powerbi.com/v1.0/myorg`)
 - `Fabric:HttpTimeoutSeconds` (default: `30`)
+
+### Transport Modes
+
+The server supports two transport modes:
+
+#### Stdio Mode (Default)
+
+Use stdio transport for local development with VS Code MCP extension:
+
+```bash
+dotnet run --project src/Moedim.Mcp.Fabric/Moedim.Mcp.Fabric.csproj
+```
+
+Or configure in your MCP client:
+
+```json
+{
+  "servers": {
+    "Moedim.Mcp.Fabric": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": ["run", "--project", "Moedim.Mcp.Fabric.csproj"],
+      "cwd": "${workspaceFolder}/src/Moedim.Mcp.Fabric"
+    }
+  }
+}
+```
+
+#### HTTP Mode
+
+Use HTTP transport for stateless deployment or container environments:
+
+```bash
+# Default port 5000
+dotnet run --project src/Moedim.Mcp.Fabric/Moedim.Mcp.Fabric.csproj --http
+
+# Custom port
+dotnet run --project src/Moedim.Mcp.Fabric/Moedim.Mcp.Fabric.csproj --http --port 8080
+```
+
+Or configure in your MCP client:
+
+```json
+{
+  "servers": {
+    "Moedim.Mcp.Fabric": {
+      "type": "http",
+      "url": "http://localhost:5000/mcp"
+    }
+  }
+}
+```
+
+For complete details on command-line options and environment variables, run:
+
+```bash
+dotnet run --project src/Moedim.Mcp.Fabric/Moedim.Mcp.Fabric.csproj --help
+```
+
+Or see [QUICKSTART.md](src/Moedim.Mcp.Fabric/QUICKSTART.md).
 
 ## Available MCP Tools
 

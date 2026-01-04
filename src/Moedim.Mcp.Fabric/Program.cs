@@ -1,30 +1,173 @@
 using DotNetEnv.Configuration;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moedim.Mcp.Fabric.Extensions;
 using Moedim.Mcp.Fabric.Tools;
 
-var builder = Host.CreateApplicationBuilder(args);
+// Parse command-line arguments
+var config = ParseArguments(args);
 
-// Load environment variables from .env file
-builder.Configuration.AddDotNetEnv();
+if (config.ShowHelp)
+{
+    ShowHelp();
+    return 0;
+}
 
-// Configure logging to route to stderr for MCP protocol compliance
-builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Information);
+// Create appropriate builder based on transport mode
+if (config.UseHttp)
+{
+    var builder = WebApplication.CreateBuilder(args);
 
-// Register Fabric services for dependency injection
-builder.Services.AddFabricSemanticModel(builder.Configuration);
+    // Load environment variables from .env file
+    builder.Configuration.AddDotNetEnv();
 
-// Configure MCP server with stdio transport and Fabric tools
-builder.Services
-    .AddMcpServer()
-    .WithStdioServerTransport()
-    .WithTools<FabricSemanticModelTools>();
+    // Configure logging based on transport mode
+    builder.Logging.AddConsole();
 
-var host = builder.Build();
+    // Register Fabric services for dependency injection
+    builder.Services.AddFabricSemanticModel(builder.Configuration);
 
-Console.WriteLine("Fabric Semantic Model MCP Server initialized");
-Console.WriteLine("Available tools: query_semantic_model, list_semantic_models, get_semantic_model_metadata, aggregate_data, get_distinct_values");
+    // Configure MCP server with HTTP transport
+    builder.Services
+        .AddMcpServer()
+        .WithHttpTransport(options => options.Stateless = true)
+        .WithTools<FabricSemanticModelTools>();
 
-await host.RunAsync();
+    // Configure HTTP port via environment or directly on webhost settings
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.ListenLocalhost(config.Port);
+    });
+
+    var webApp = builder.Build();
+
+    // Configure HTTPS redirection for production
+    if (!config.DisableHttpsRedirect && !webApp.Environment.IsDevelopment())
+    {
+        webApp.UseHttpsRedirection();
+    }
+
+    // Enable routing
+    webApp.UseRouting();
+
+    // Map MCP endpoint
+    webApp.MapMcp("/mcp");
+
+    Console.WriteLine($"Fabric Semantic Model MCP Server initialized [HTTP Mode]");
+    Console.WriteLine($"Endpoint: http://localhost:{config.Port}/mcp");
+    Console.WriteLine($"HTTPS Redirection: {(!config.DisableHttpsRedirect && !webApp.Environment.IsDevelopment() ? "Enabled" : "Disabled")}");
+    Console.WriteLine("Available tools: query_semantic_model, list_semantic_models, get_semantic_model_metadata, aggregate_data, get_distinct_values");
+
+    await webApp.RunAsync();
+}
+else
+{
+    var builder = Host.CreateApplicationBuilder(args);
+
+    // Load environment variables from .env file
+    builder.Configuration.AddDotNetEnv();
+
+    // Route logs to stderr for stdio MCP protocol compliance
+    builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Information);
+
+    // Register Fabric services for dependency injection
+    builder.Services.AddFabricSemanticModel(builder.Configuration);
+
+    // Configure MCP server with stdio transport
+    builder.Services
+        .AddMcpServer()
+        .WithStdioServerTransport()
+        .WithTools<FabricSemanticModelTools>();
+
+    var host = builder.Build();
+
+    Console.Error.WriteLine("Fabric Semantic Model MCP Server initialized [Stdio Mode]");
+    Console.Error.WriteLine("Available tools: query_semantic_model, list_semantic_models, get_semantic_model_metadata, aggregate_data, get_distinct_values");
+
+    await host.RunAsync();
+}
+
+return 0;
+
+static AppConfig ParseArguments(string[] args)
+{
+    var useHttp = args.Contains("--http", StringComparer.OrdinalIgnoreCase) ||
+                  Environment.GetEnvironmentVariable("UseHttp")?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+
+    var disableHttpsRedirect = args.Contains("--disable-https-redirect", StringComparer.OrdinalIgnoreCase);
+    var showHelp = args.Contains("--help", StringComparer.OrdinalIgnoreCase) || args.Contains("-h", StringComparer.OrdinalIgnoreCase);
+
+    // Parse port from command-line or environment variable
+    var port = 5000; // Default
+    var portIndex = Array.FindIndex(args, a => a.Equals("--port", StringComparison.OrdinalIgnoreCase) || a.Equals("-p", StringComparison.OrdinalIgnoreCase));
+
+    if (portIndex >= 0 && portIndex + 1 < args.Length)
+    {
+        if (int.TryParse(args[portIndex + 1], out var parsedPort) && parsedPort >= 1 && parsedPort <= 65535)
+        {
+            port = parsedPort;
+        }
+        else
+        {
+            Console.Error.WriteLine($"Invalid port number: {args[portIndex + 1]}. Using default port {port}.");
+        }
+    }
+    else
+    {
+        // Check environment variable
+        var portEnv = Environment.GetEnvironmentVariable("PORT");
+        if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var parsedPort) && parsedPort >= 1 && parsedPort <= 65535)
+        {
+            port = parsedPort;
+        }
+    }
+
+    return new AppConfig(useHttp, port, disableHttpsRedirect, showHelp);
+}
+
+static void ShowHelp()
+{
+    Console.WriteLine("Moedim.Mcp.Fabric - Microsoft Fabric Semantic Model MCP Server");
+    Console.WriteLine();
+    Console.WriteLine("Usage: Moedim.Mcp.Fabric [options]");
+    Console.WriteLine();
+    Console.WriteLine("Transport Mode Options:");
+    Console.WriteLine("  --stdio                    Use stdio transport (default)");
+    Console.WriteLine("  --http                     Use HTTP/SSE transport (stateless mode)");
+    Console.WriteLine();
+    Console.WriteLine("HTTP Mode Options:");
+    Console.WriteLine("  --port, -p <number>        Port number for HTTP server (default: 5000, range: 1-65535)");
+    Console.WriteLine("  --disable-https-redirect   Disable HTTPS redirection in production");
+    Console.WriteLine();
+    Console.WriteLine("Other Options:");
+    Console.WriteLine("  --help, -h                 Show this help message");
+    Console.WriteLine();
+    Console.WriteLine("Environment Variables:");
+    Console.WriteLine("  UseHttp=true              Enable HTTP transport (command-line --http takes precedence)");
+    Console.WriteLine("  PORT=<number>             Set HTTP port (command-line --port takes precedence)");
+    Console.WriteLine("  Fabric:WorkspaceId        Microsoft Fabric workspace ID (required)");
+    Console.WriteLine("  Fabric:DefaultDatasetId   Default dataset ID for queries (optional)");
+    Console.WriteLine();
+    Console.WriteLine("Examples:");
+    Console.WriteLine("  # Run in stdio mode (default)");
+    Console.WriteLine("  Moedim.Mcp.Fabric");
+    Console.WriteLine();
+    Console.WriteLine("  # Run in HTTP mode on default port 5000");
+    Console.WriteLine("  Moedim.Mcp.Fabric --http");
+    Console.WriteLine();
+    Console.WriteLine("  # Run in HTTP mode on custom port");
+    Console.WriteLine("  Moedim.Mcp.Fabric --http --port 8080");
+    Console.WriteLine();
+    Console.WriteLine("  # Run in HTTP mode with HTTPS redirection disabled");
+    Console.WriteLine("  Moedim.Mcp.Fabric --http --disable-https-redirect");
+    Console.WriteLine();
+    Console.WriteLine("  # Using environment variables");
+    Console.WriteLine("  UseHttp=true PORT=8080 Moedim.Mcp.Fabric");
+    Console.WriteLine();
+    Console.WriteLine("For more information, see QUICKSTART.md");
+}
+
+record AppConfig(bool UseHttp, int Port, bool DisableHttpsRedirect, bool ShowHelp);
