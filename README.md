@@ -2,10 +2,22 @@
 
 > Model Context Protocol (MCP) server that exposes Microsoft Fabric semantic models, tables, and DAX queries to AI assistants.
 
-![Project Icon](img/icon.png)
-
 [![NuGet](https://img.shields.io/nuget/v/Moedim.Mcp.Fabric.svg)](https://www.nuget.org/packages/Moedim.Mcp.Fabric)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/kdcllc/Moedim.Mcp.Fabric/actions)
+
+![Stand With Israel](img/IStandWithIsrael.png)
+
+> "Moedim" is a Hebrew word that translates to "feast" or "appointed time." The feasts are signals and signs to help us know what is on the heart of HaShem.
+
+## Hire me
+
+Please send [email](mailto:info@kingdavidconsulting.com) if you consider to **hire me**.
+
+[![buymeacoffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/vyve0og)
+
+## Give a Star! :star:
+
+If you like or are using this project to learn or start your solution, please give it a star. Thanks!
 
 ## Features
 
@@ -23,7 +35,7 @@
 dotnet add package Moedim.Mcp.Fabric
 ```
 
-2) **Configure services and MCP server**
+1) **Configure services and MCP server**
 
 ```csharp
 using Moedim.Mcp.Fabric.Extensions;
@@ -41,7 +53,7 @@ builder.Services
 await builder.Build().RunAsync();
 ```
 
-3) **Provide configuration** (appsettings.json or environment variables)
+1) **Provide configuration** (appsettings.json or environment variables)
 
 - `Fabric:WorkspaceId` *(required)*
 - `Fabric:DefaultDatasetId` *(optional)*
