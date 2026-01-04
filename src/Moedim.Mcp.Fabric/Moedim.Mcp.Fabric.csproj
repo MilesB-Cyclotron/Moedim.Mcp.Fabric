@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>true</IsPackable>
     <LangVersion>latest</LangVersion>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- MCP packaging -->
     <PackAsTool>true</PackAsTool>
@@ -19,11 +21,13 @@
     <None Include=".mcp/server.json" Pack="true" PackagePath="/.mcp/" />
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="QUICKSTART.md" Pack="true" PackagePath="/" />
+    <None Include="../../img/icon.png" Pack="true" PackagePath="/icon.png" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.Core" />
     <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="DotNetEnv" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
