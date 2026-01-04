@@ -106,11 +106,26 @@ Or see [QUICKSTART.md](src/Moedim.Mcp.Fabric/QUICKSTART.md).
 
 ## Available MCP Tools
 
-- `query_semantic_model` — Execute ad-hoc DAX queries.
-- `list_semantic_models` — Enumerate datasets in the workspace.
-- `get_semantic_model_metadata` — Retrieve tables and column metadata.
-- `aggregate_data` — Run SUM/AVG/COUNT/MIN/MAX on a column.
-- `get_distinct_values` — Get unique values for a column.
+The server exposes 10 powerful tools for interacting with Microsoft Fabric semantic models:
+
+### Data Query & Exploration
+
+- **`query_semantic_model`** — Execute ad-hoc DAX queries against semantic models with optional dataset override
+- **`list_semantic_models`** — Enumerate all datasets in the configured Fabric workspace
+- **`get_semantic_model_metadata`** — Retrieve table and column schema information (requires Push API datasets)
+
+### Dataset Information
+
+- **`get_dataset_details`** — Get comprehensive dataset metadata (name, owner, created date, storage mode, refresh settings, security, scale-out config)
+- **`get_dataset_datasources`** — List all datasources configured for a dataset
+- **`get_dataset_parameters`** — Retrieve mashup parameters defined in the dataset
+- **`get_dataset_refresh_history`** — View refresh history entries with status and timing information
+- **`get_dataset_users`** — List principals and their access rights to a dataset
+
+### Data Aggregation
+
+- **`aggregate_data`** — Perform aggregation operations (SUM, AVG, COUNT, MIN, MAX) on columns
+- **`get_distinct_values`** — Retrieve all unique values from a specified column
 
 ## Local Development
 
